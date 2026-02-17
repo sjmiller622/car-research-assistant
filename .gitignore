@@ -1,5 +1,14 @@
+# Visual Studio cache/options
 .vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
 *.sqlite
 *.vsidx
 slnx.sqlite
 VSWorkspaceState.json
+
+# OS files
+.DS_Store
+Thumbs.db
