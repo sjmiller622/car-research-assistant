@@ -93,6 +93,10 @@ function displaySuccessMessage(data) {
         const mileageStyle = data.mileage.includes('New car') ? 'color: orange;' : '';
         displayHtml += `<strong>Mileage:</strong> <span style="${mileageStyle}">${data.mileage}</span><br>`;
     }
+    // Show title status warning if not clean
+    if (data.titleStatus && data.titleStatus !== 'clean' && data.titleStatus !== 'unknown') {
+        displayHtml += `<strong style="color: red;">⚠️ Title Status:</strong> ${data.titleStatus.toUpperCase()}<br>`;
+    }
     if (data.dealer && data.dealer !== 'Unknown') {
         displayHtml += `<strong>Dealer:</strong> ${data.dealer}<br>`;
     }
@@ -141,6 +145,8 @@ function displaySuccessMessage(data) {
                         ${car.stockNumber ? `<strong>Stock #:</strong> ${car.stockNumber}<br>` : ''}
                         <strong>Price:</strong> ${car.price || 'N/A'}<br>
                         <strong>Mileage:</strong> ${car.mileage || 'N/A'}<br>
+                        ${car.titleStatus && car.titleStatus !== 'clean' && car.titleStatus !== 'unknown' ? 
+                        `<strong style="color: red;">⚠️ Title:</strong> ${car.titleStatus.toUpperCase()}<br>` : ''}
                         ${dealerHtml}
                         ${featuresHtml}
                         <small style="color: #666;">Saved: ${new Date(car.timestamp).toLocaleString()}</small>

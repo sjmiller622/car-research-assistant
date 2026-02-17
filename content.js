@@ -60,9 +60,14 @@ function extractCarsComData() {
         dealer: dealerText || 'Unknown',
         location: locationText || 'Unknown',
         features: features,
+    
+        // Salvage/accident tracking (to be populated in Phase 5)
+        titleStatus: detectTitleStatus(),  // 'clean', 'salvage', 'rebuilt', 'unknown'
+        knownSalvageDealer: false,  // Will flag known salvage dealers
+        accidentReported: null,  // Will capture from CarFax/AutoCheck later
+    
         rawPrice: priceText,
-        rawMileage: mileageText
-    };
+        rawMileage: mileageText    };
     
     console.log('Extracted car data:', carData);
     return carData;
@@ -163,5 +168,35 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         sendResponse({success: true, data: data});
     }
 });
+
+// Basic title status detection (will improve in Phase 5)
+function detectTitleStatus() {
+    const pageText = document.body.textContent.toLowerCase();
+    
+    // Obvious salvage indicators
+    const salvageKeywords = [
+        'salvage title',
+        'salvage vehicle', 
+        'rebuilt title',
+        'branded title',
+        'total loss',
+        'insurance write-off'
+    ];
+    
+    for (let keyword of salvageKeywords) {
+        if (pageText.includes(keyword)) {
+            console.log('⚠️ SALVAGE DETECTED:', keyword);
+            return 'salvage/rebuilt';
+        }
+    }   
+    
+    // Check for clean title mentions
+    if (pageText.includes('clean title')) {
+        return 'clean';
+    }
+    
+    // Default to unknown - we'll improve this in Phase 5
+    return 'unknown';
+}
 
 console.log('Content script loaded and ready!');
