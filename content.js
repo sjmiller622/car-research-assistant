@@ -3,23 +3,49 @@ console.log('Car Research Assistant is active on this page!');
 
 // Function to extract car data from Cars.com
 function extractCarsComData() {
-    // Use the exact class names you found
+    // Use the exact class names
     const priceElement = document.querySelector('.list-price');
     const mileageElement = document.querySelector('.msrp');
     const titleElement = document.querySelector('h1');
     
+    // Try to find VIN (usually in the details section)
+    const vinElement = document.querySelector('[data-qa="vin"]') || 
+                       document.querySelector('.vin') ||
+                       Array.from(document.querySelectorAll('*')).find(el => 
+                           el.textContent.includes('VIN:')
+                       );
+    
+    // Try to find dealer/seller name
+    const dealerElement = document.querySelector('[data-qa="dealer-name"]') ||
+                         document.querySelector('.dealer-name') ||
+                         document.querySelector('.seller-name');
+    
+    // Try to find location
+    const locationElement = document.querySelector('[data-qa="dealer-address"]') ||
+                           document.querySelector('.dealer-location');
+    
+    // Extract features (we'll do basic extraction now, improve later)
+    const features = extractFeatures();
+    
     // Extract raw text
     let priceText = priceElement ? priceElement.textContent.trim() : null;
     let mileageText = mileageElement ? mileageElement.textContent.trim() : null;
+    let vinText = vinElement ? vinElement.textContent.replace('VIN:', '').trim() : null;
+    let dealerText = dealerElement ? dealerElement.textContent.trim() : null;
+    let locationText = locationElement ? locationElement.textContent.trim() : null;
     
     // Validate and clean the data
     const carData = {
         url: window.location.href,
+        vin: vinText || null,
         timestamp: new Date().toISOString(),
         site: 'cars.com',
         title: titleElement ? titleElement.textContent.trim() : document.title,
         price: validatePrice(priceText),
         mileage: validateMileage(mileageText),
+        dealer: dealerText || 'Unknown',
+        location: locationText || 'Unknown',
+        features: features,
         rawPrice: priceText,
         rawMileage: mileageText
     };
@@ -28,11 +54,56 @@ function extractCarsComData() {
     return carData;
 }
 
+// Basic feature extraction (will improve in Phase 5)
+function extractFeatures() {
+    const features = [];
+    
+    // Features to look for
+    const desiredFeatures = [
+        'backup camera',
+        'back-up camera',
+        'rear camera',
+        'remote start',
+        'heated seats',
+        'leather seats',
+        'sunroof',
+        'moonroof',
+        'navigation',
+        'bluetooth',
+        'apple carplay',
+        'android auto',
+        'blind spot',
+        'lane assist',
+        'parking sensors',
+        'cruise control',
+        'keyless entry',
+        'all-wheel drive',
+        'awd',
+        '4wd'
+    ];
+    
+    // Get all text on the page (simple approach for now)
+    const pageText = document.body.textContent.toLowerCase();
+    
+    // Check which features are mentioned
+    desiredFeatures.forEach(feature => {
+        if (pageText.includes(feature.toLowerCase())) {
+            // Capitalize first letter of each word for display
+            const displayFeature = feature.split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+            features.push(displayFeature);
+        }
+    });
+    
+    // Remove duplicates
+    return [...new Set(features)];
+}
+
 // Validate that price looks like a price
 function validatePrice(text) {
     if (!text) return 'Not found';
     
-    // Check if it contains a dollar sign
     if (!text.includes('$')) {
         return `${text} (verify - no $ found)`;
     }
@@ -40,25 +111,18 @@ function validatePrice(text) {
     return text;
 }
 
-// Validate mileage field - on Cars.com, this field shows MSRP for new cars
+// Validate mileage field
 function validateMileage(text) {
     if (!text) return 'Not found';
     
-    // The .msrp class contains DIFFERENT things depending on car type:
-    // - For NEW cars: Contains MSRP price (e.g., "$16,998 MSRP")
-    // - For USED cars: Contains actual mileage (e.g., "120,318 mi")
-    
-    // If it contains a dollar sign, it's the MSRP (new car)
     if (text.includes('$')) {
         return 'New car (MSRP shown - no mileage)';
     }
     
-    // If it contains "mi" or numbers, it's actual mileage
     if (text.toLowerCase().includes('mi') || /\d/.test(text)) {
-        return text;  // Return the mileage as-is
+        return text;
     }
     
-    // If we can't determine what it is, just return it
     return text;
 }
 
