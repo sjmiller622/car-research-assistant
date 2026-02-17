@@ -14,8 +14,6 @@ document.addEventListener('DOMContentLoaded', function() {
             chrome.tabs.sendMessage(currentTab.id, {action: 'extractData'}, function(response) {
                 if (response && response.success) {
                     const data = response.data;
-                    
-                    // Check for duplicates before saving
                     checkAndSaveCarData(data);
                 } else {
                     message.style.display = 'block';
@@ -40,13 +38,10 @@ document.addEventListener('DOMContentLoaded', function() {
         chrome.storage.local.get({savedCars: []}, function(result) {
             const cars = result.savedCars;
             
-            // Check for duplicate by VIN or URL
             const duplicate = cars.find(car => {
-                // If both have VIN and they match, it's a duplicate
                 if (car.vin && carData.vin && car.vin === carData.vin) {
                     return true;
                 }
-                // If no VIN, check URL
                 if (car.url === carData.url) {
                     return true;
                 }
@@ -54,7 +49,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             if (duplicate) {
-                // Show duplicate warning
                 message.style.display = 'block';
                 message.innerHTML = `
                     <strong>⚠️ Already Saved!</strong><br><br>
@@ -63,7 +57,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <small>Not adding duplicate entry.</small>
                 `;
             } else {
-                // Add the new car
                 cars.unshift(carData);
                 chrome.storage.local.set({savedCars: cars}, function() {
                     displaySuccessMessage(carData);
@@ -73,43 +66,59 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-// Display success message
-function displaySuccessMessage(data) {
-    let displayHtml = '<strong>✅ Car Saved!</strong><br><br>';
+    // Display success message
+    function displaySuccessMessage(data) {
+        let displayHtml = '<strong>✅ Car Saved!</strong><br><br>';
+        
+        if (data.title) {
+            displayHtml += `<strong>Car:</strong> ${data.title}<br>`;
+        }
+        if (data.vin) {
+            displayHtml += `<strong>VIN:</strong> ${data.vin}<br>`;
+        }
+        if (data.stockNumber) {
+            displayHtml += `<strong>Stock #:</strong> ${data.stockNumber}<br>`;
+        }
+        if (data.price) {
+            displayHtml += `<strong>Price:</strong> ${data.price}<br>`;
+        }
+        if (data.mileage) {
+            const mileageStyle = data.mileage.includes('New car') ? 'color: orange;' : '';
+            displayHtml += `<strong>Mileage:</strong> <span style="${mileageStyle}">${data.mileage}</span><br>`;
+        }
+        if (data.titleStatus && data.titleStatus !== 'clean' && data.titleStatus !== 'unknown') {
+            displayHtml += `<strong style="color: red;">⚠️ Title Status:</strong> ${data.titleStatus.toUpperCase()}<br>`;
+        }
+        if (data.dealer && data.dealer !== 'Unknown') {
+            displayHtml += `<strong>Dealer:</strong> ${data.dealer}<br>`;
+        }
+        if (data.features && data.features.length > 0) {
+            displayHtml += `<strong>Features found:</strong> ${data.features.length}<br>`;
+        }
+        
+        displayHtml += `<br><small>Saved at ${new Date(data.timestamp).toLocaleTimeString()}</small>`;
+        
+        message.style.display = 'block';
+        message.innerHTML = displayHtml;
+    }
     
-    if (data.title) {
-        displayHtml += `<strong>Car:</strong> ${data.title}<br>`;
-    }
-    if (data.vin) {
-        displayHtml += `<strong>VIN:</strong> ${data.vin}<br>`;
-    }
-    if (data.stockNumber) {
-        displayHtml += `<strong>Stock #:</strong> ${data.stockNumber}<br>`;
-    }
-    if (data.price) {
-        displayHtml += `<strong>Price:</strong> ${data.price}<br>`;
-    }
-    if (data.mileage) {
-        const mileageStyle = data.mileage.includes('New car') ? 'color: orange;' : '';
-        displayHtml += `<strong>Mileage:</strong> <span style="${mileageStyle}">${data.mileage}</span><br>`;
-    }
-    // Show title status warning if not clean
-    if (data.titleStatus && data.titleStatus !== 'clean' && data.titleStatus !== 'unknown') {
-        displayHtml += `<strong style="color: red;">⚠️ Title Status:</strong> ${data.titleStatus.toUpperCase()}<br>`;
-    }
-    if (data.dealer && data.dealer !== 'Unknown') {
-        displayHtml += `<strong>Dealer:</strong> ${data.dealer}<br>`;
-    }
-    if (data.features && data.features.length > 0) {
-        displayHtml += `<strong>Features found:</strong> ${data.features.length}<br>`;
+    // Delete individual car
+    function deleteCar(index) {
+        chrome.storage.local.get({savedCars: []}, function(result) {
+            const cars = result.savedCars;
+            const deletedCar = cars[index];
+            
+            if (confirm(`Delete ${deletedCar.title || 'this car'}?`)) {
+                cars.splice(index, 1);
+                chrome.storage.local.set({savedCars: cars}, function() {
+                    loadSavedCars();
+                    message.style.display = 'block';
+                    message.innerHTML = '<strong>🗑️ Car deleted!</strong>';
+                });
+            }
+        });
     }
     
-    displayHtml += `<br><small>Saved at ${new Date(data.timestamp).toLocaleTimeString()}</small>`;
-    
-    message.style.display = 'block';
-    message.innerHTML = displayHtml;
-}
-
     // Load and display saved cars
     function loadSavedCars() {
         chrome.storage.local.get({savedCars: []}, function(result) {
@@ -124,35 +133,61 @@ function displaySuccessMessage(data) {
             }
             
             if (cars.length === 0) {
-                savedCarsDiv.innerHTML = '<div class="empty-state">No cars saved yet. Visit a car listing and click "Capture This Page"!</div>';
+                savedCarsDiv.innerHTML = '<div class="empty-state">No cars saved yet.<br>Visit a car listing and click "Capture This Page"!</div>';
             } else {
                 let html = '';
                 cars.forEach(function(car, index) {
-                    let featuresHtml = '';
-                    if (car.features && car.features.length > 0) {
-                        featuresHtml = `<strong>Features:</strong> ${car.features.join(', ')}<br>`;
-                    }
+                    // Determine if salvage
+                    const isSalvage = car.titleStatus && 
+                                     car.titleStatus !== 'clean' && 
+                                     car.titleStatus !== 'unknown';
                     
+                    const salvageClass = isSalvage ? 'salvage' : '';
+                    const salvageBadge = isSalvage ? `<span class="warning-badge">SALVAGE</span>` : '';
+                    
+                    // Build dealer info
                     let dealerHtml = '';
                     if (car.dealer && car.dealer !== 'Unknown') {
                         dealerHtml = `<strong>Dealer:</strong> ${car.dealer}<br>`;
                     }
                     
+                    // Build features tags
+                    let featuresHtml = '';
+                    if (car.features && car.features.length > 0) {
+                        featuresHtml = '<div class="feature-tags">';
+                        car.features.forEach(feature => {
+                            featuresHtml += `<span class="feature-tag">${feature}</span>`;
+                        });
+                        featuresHtml += '</div>';
+                    }
+                    
                     html += `
-                    <div class="car-item">
-                        <div class="car-title">${car.title || 'Unknown Car'}</div>
-                        ${car.vin ? `<strong>VIN:</strong> ${car.vin}<br>` : ''}
-                        ${car.stockNumber ? `<strong>Stock #:</strong> ${car.stockNumber}<br>` : ''}
-                        <strong>Price:</strong> ${car.price || 'N/A'}<br>
-                        <strong>Mileage:</strong> ${car.mileage || 'N/A'}<br>
-                        ${car.titleStatus && car.titleStatus !== 'clean' && car.titleStatus !== 'unknown' ? 
-                        `<strong style="color: red;">⚠️ Title:</strong> ${car.titleStatus.toUpperCase()}<br>` : ''}
-                        ${dealerHtml}
-                        ${featuresHtml}
-                        <small style="color: #666;">Saved: ${new Date(car.timestamp).toLocaleString()}</small>
-                    </div>                    `;
+                        <div class="car-item ${salvageClass}">
+                            <div class="car-item-header">
+                                <div class="car-title">${car.title || 'Unknown Car'}${salvageBadge}</div>
+                                <button class="delete-btn" data-index="${index}" title="Delete this car">×</button>
+                            </div>
+                            <div class="car-details">
+                                ${car.vin ? `<strong>VIN:</strong> ${car.vin}<br>` : ''}
+                                ${car.stockNumber ? `<strong>Stock #:</strong> ${car.stockNumber}<br>` : ''}
+                                <strong>Price:</strong> ${car.price || 'N/A'}<br>
+                                <strong>Mileage:</strong> ${car.mileage || 'N/A'}<br>
+                                ${dealerHtml}
+                                ${featuresHtml}
+                                <div class="timestamp">Saved: ${new Date(car.timestamp).toLocaleString()}</div>
+                            </div>
+                        </div>
+                    `;
                 });
                 savedCarsDiv.innerHTML = html;
+                
+                // Add click handlers to all delete buttons
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const index = parseInt(this.getAttribute('data-index'));
+                        deleteCar(index);
+                    });
+                });
             }
         });
     }
