@@ -177,46 +177,166 @@ function extractAutoTraderData() {
 // =============================================================================
 
 function extractCarGurusData() {
-    // CarGurus structure
-    const priceElement = document.querySelector('[data-testid="listing-price"]') ||
-                        document.querySelector('.price-section');
+    console.log('=== CarGurus Extraction Debug ===');
     
-    const mileageElement = document.querySelector('[data-testid="mileage"]') ||
-                          document.querySelector('.mileage');
+    // Price - look for the specific _price_1yep1_1 pattern
+    const priceElement = document.querySelector('[class*="_price_"][class*="yep"]') ||
+                        document.querySelector('h2[class*="jyvfx"]') ||
+                        document.querySelector('[class*="price"]');
     
-    const titleElement = document.querySelector('h1') ||
-                        document.querySelector('[data-testid="listing-title"]');
+    console.log('Price element:', priceElement);
+    console.log('Price text:', priceElement ? priceElement.textContent : 'null');
     
-    // VIN
-    let vinText = null;
-    const vinElement = Array.from(document.querySelectorAll('*')).find(el => 
-        el.textContent.includes('VIN') && el.textContent.length < 100
-    );
+    // Mileage - it's in a span after the label, within _record_ujolz_1
+    let mileageText = null;
     
-    if (vinElement) {
-        const vinMatch = vinElement.textContent.match(/VIN[:\s]*([A-HJ-NPR-Z0-9]{17})/i);
-        if (vinMatch) {
-            vinText = vinMatch[1].trim();
+    // Look for the mileage in the specific structure: label wrapper + value span
+    const mileageLabels = Array.from(document.querySelectorAll('[class*="ptpvP_label"][class*="ujolz"]'));
+    console.log('Found potential mileage labels:', mileageLabels.length);
+    
+    for (let label of mileageLabels) {
+        console.log('Checking label:', label.textContent);
+        if (label.textContent.toLowerCase().includes('mileage')) {
+            // The value is in a sibling span with class containing "ujolz"
+            const parent = label.parentElement;
+            const valueSpan = parent.querySelector('span[class*="ujolz"]:not([class*="label"])');
+            console.log('Found value span:', valueSpan);
+            if (valueSpan) {
+                mileageText = valueSpan.textContent.trim();
+                console.log('Extracted mileage:', mileageText);
+                break;
+            }
         }
     }
     
-    // Dealer
-    const dealerElement = document.querySelector('[data-testid="dealer-name"]') ||
-                         document.querySelector('.seller-name');
+    // Fallback: look for pattern like "38,916 mi" anywhere
+    if (!mileageText) {
+        const allSpans = document.querySelectorAll('span');
+        for (let span of allSpans) {
+            const text = span.textContent.trim();
+            if (/^\d{1,3}(,\d{3})*\s*mi$/i.test(text)) {
+                mileageText = text;
+                console.log('Fallback found mileage:', mileageText);
+                break;
+            }
+        }
+    }
     
-    const locationElement = document.querySelector('[data-testid="dealer-address"]');
+    // Title
+    const titleElement = document.querySelector('h1') ||
+                        document.querySelector('[class*="heading"]');
+    
+    // VIN
+    let vinText = null;
+    const allText = document.body.textContent;
+    const vinMatch = allText.match(/VIN[:\s]*([A-HJ-NPR-Z0-9]{17})/i);
+    if (vinMatch) {
+        vinText = vinMatch[1].trim();
+    }
+
+    // Stock # - CarGurus uses data-cg-ft attribute
+    let stockNumber = null;
+
+    // Method 1: Look for data-cg-ft="stockNumber"
+    const stockWrapper = document.querySelector('[data-cg-ft="stockNumber"]');
+    if (stockWrapper) {
+        const stockValue = stockWrapper.querySelector('span[class*="_value_ujolz"]') ||
+                          stockWrapper.querySelector('span[class*="39l0l"]');
+        if (stockValue) {
+            let rawStock = stockValue.textContent.trim();
+        
+            // Clean up stock number - stock numbers don't usually have lowercase letters
+            // Split on the first occurrence of a capital letter followed by lowercase (like "Fuel", "Type")
+            const cleanMatch = rawStock.match(/^([A-Z0-9\-]+?)(?=[A-Z][a-z]|$)/);
+            stockNumber = cleanMatch ? cleanMatch[1] : rawStock.split(/[A-Z][a-z]/)[0];
+        
+            console.log('Found stock # in data-cg-ft:', stockNumber, '(raw:', rawStock + ')');
+        }
+    }
+
+    // Method 2: Fallback to text search  
+    if (!stockNumber) {
+        const stockMatch = allText.match(/Stock\s+number[:\s]*([A-Z0-9\-]+)/i);
+        if (stockMatch) {
+            stockNumber = stockMatch[1].trim();
+            console.log('Found stock # in text:', stockNumber);
+        }
+    }
+
+    // Dealer - CarGurus often has dealer name in alt text or near logo
+    let dealerText = null;
+
+    // Method 1: Look for dealer logo alt text
+    const dealerLogo = document.querySelector('[class*="_logo"][alt]');
+    if (dealerLogo) {
+        dealerText = dealerLogo.alt;
+        console.log('Found dealer in logo alt:', dealerText);
+    }
+
+    // Method 2: Look for dealer name in text near "inventory" or "website"
+    if (!dealerText) {
+        const dealerElement = Array.from(document.querySelectorAll('*')).find(el => {
+            const text = el.textContent;
+            return (text.includes('Dealer website') || 
+                   text.includes('Dealer reviews') || 
+                   text.includes('inventory')) && 
+                   text.length < 200 && 
+                   text.length > 10;
+        });
+    
+        if (dealerElement) {
+            // Extract just the dealer name (usually the first part before "Dealer website" etc)
+            const match = dealerElement.textContent.match(/^([^•]+)/);
+            if (match) {
+                dealerText = match[1].trim();
+                console.log('Found dealer in text:', dealerText);
+            }
+        }
+    }
+
+    // Method 3: Look for heading or strong text near contact info
+    if (!dealerText) {
+        const headings = document.querySelectorAll('h2, h3, strong');
+        for (let heading of headings) {
+            const text = heading.textContent.trim();
+            // Dealer names are usually between 10-50 characters
+            if (text.length > 10 && text.length < 50 && !text.includes('$') && !text.includes('Mileage')) {
+                dealerText = text;
+                console.log('Found dealer in heading:', dealerText);
+                break;
+            }
+        }
+    }
+    
+    const locationElement = document.querySelector('[class*="location"]') ||
+                           document.querySelector('[class*="address"]');
     
     const features = extractFeatures();
     
     let priceText = priceElement ? priceElement.textContent.trim() : null;
-    let mileageText = mileageElement ? mileageElement.textContent.trim() : null;
-    let dealerText = dealerElement ? dealerElement.textContent.trim() : null;
     let locationText = locationElement ? locationElement.textContent.trim() : null;
+    
+    console.log('Final extraction:', {
+        price: priceText,
+        mileage: mileageText,
+        dealer: dealerText,
+        vin: vinText,
+        stock: stockNumber
+    });
+    
+    // Check if this is a known salvage dealer
+    const knownSalvageDealer = isKnownSalvageDealer(dealerText);
+    
+    // If this dealer is selling a salvage car, add them to the list
+    const titleStatus = detectTitleStatus();
+    if (titleStatus === 'salvage/rebuilt' && dealerText) {
+        addSalvageDealer(dealerText);
+    }
     
     return {
         url: window.location.href,
         vin: vinText || null,
-        stockNumber: null,
+        stockNumber: stockNumber || null,
         timestamp: new Date().toISOString(),
         site: 'cargurus.com',
         title: titleElement ? titleElement.textContent.trim() : document.title,
@@ -225,14 +345,13 @@ function extractCarGurusData() {
         dealer: dealerText || 'Unknown',
         location: locationText || 'Unknown',
         features: features,
-        titleStatus: detectTitleStatus(),
-        knownSalvageDealer: false,
+        titleStatus: titleStatus,
+        knownSalvageDealer: knownSalvageDealer,
         accidentReported: null,
         rawPrice: priceText,
         rawMileage: mileageText
     };
 }
-
 // =============================================================================
 // CARSOUP EXTRACTOR
 // =============================================================================

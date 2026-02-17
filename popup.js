@@ -76,9 +76,6 @@ function displaySuccessMessage(data) {
     if (data.vin) {
         displayHtml += `<strong>VIN:</strong> ${data.vin}<br>`;
     }
-    if (data.stockNumber) {
-        displayHtml += `<strong>Stock #:</strong> ${data.stockNumber}<br>`;
-    }
     if (data.price) {
         displayHtml += `<strong>Price:</strong> ${data.price}<br>`;
     }
@@ -177,7 +174,6 @@ function displaySuccessMessage(data) {
                             </div>
                             <div class="car-details">
                                 ${car.vin ? `<strong>VIN:</strong> ${car.vin}<br>` : ''}
-                                ${car.stockNumber ? `<strong>Stock #:</strong> ${car.stockNumber}<br>` : ''}
                                 <strong>Price:</strong> ${car.price || 'N/A'}<br>
                                 <strong>Mileage:</strong> ${car.mileage || 'N/A'}<br>
                                 ${dealerHtml}
