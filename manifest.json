@@ -16,7 +16,8 @@
       "matches": [
         "https://www.cars.com/*",
         "https://www.autotrader.com/*",
-        "https://www.cargurus.com/*"
+        "https://www.cargurus.com/*",
+        "https://www.carsoup.com/*"
       ],
       "js": [ "content.js" ]
     }

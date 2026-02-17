@@ -66,42 +66,46 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Display success message
-    function displaySuccessMessage(data) {
-        let displayHtml = '<strong>✅ Car Saved!</strong><br><br>';
-        
-        if (data.title) {
-            displayHtml += `<strong>Car:</strong> ${data.title}<br>`;
+// Display success message
+function displaySuccessMessage(data) {
+    let displayHtml = '<strong>✅ Car Saved!</strong><br><br>';
+    
+    if (data.title) {
+        displayHtml += `<strong>Car:</strong> ${data.title}<br>`;
+    }
+    if (data.vin) {
+        displayHtml += `<strong>VIN:</strong> ${data.vin}<br>`;
+    }
+    if (data.stockNumber) {
+        displayHtml += `<strong>Stock #:</strong> ${data.stockNumber}<br>`;
+    }
+    if (data.price) {
+        displayHtml += `<strong>Price:</strong> ${data.price}<br>`;
+    }
+    if (data.mileage) {
+        const mileageStyle = data.mileage.includes('New car') ? 'color: orange;' : '';
+        displayHtml += `<strong>Mileage:</strong> <span style="${mileageStyle}">${data.mileage}</span><br>`;
+    }
+    if (data.titleStatus && data.titleStatus !== 'clean' && data.titleStatus !== 'unknown') {
+        displayHtml += `<strong style="color: red;">⚠️ Title Status:</strong> ${data.titleStatus.toUpperCase()}<br>`;
+    }
+    if (data.dealer && data.dealer !== 'Unknown') {
+        displayHtml += `<strong>Dealer:</strong> ${data.dealer}`;
+        if (data.knownSalvageDealer) {
+            displayHtml += ` <span style="color: red; font-weight: bold;">⚠️ KNOWN SALVAGE DEALER</span>`;
         }
-        if (data.vin) {
-            displayHtml += `<strong>VIN:</strong> ${data.vin}<br>`;
-        }
-        if (data.stockNumber) {
-            displayHtml += `<strong>Stock #:</strong> ${data.stockNumber}<br>`;
-        }
-        if (data.price) {
-            displayHtml += `<strong>Price:</strong> ${data.price}<br>`;
-        }
-        if (data.mileage) {
-            const mileageStyle = data.mileage.includes('New car') ? 'color: orange;' : '';
-            displayHtml += `<strong>Mileage:</strong> <span style="${mileageStyle}">${data.mileage}</span><br>`;
-        }
-        if (data.titleStatus && data.titleStatus !== 'clean' && data.titleStatus !== 'unknown') {
-            displayHtml += `<strong style="color: red;">⚠️ Title Status:</strong> ${data.titleStatus.toUpperCase()}<br>`;
-        }
-        if (data.dealer && data.dealer !== 'Unknown') {
-            displayHtml += `<strong>Dealer:</strong> ${data.dealer}<br>`;
-        }
-        if (data.features && data.features.length > 0) {
-            displayHtml += `<strong>Features found:</strong> ${data.features.length}<br>`;
-        }
-        
-        displayHtml += `<br><small>Saved at ${new Date(data.timestamp).toLocaleTimeString()}</small>`;
-        
-        message.style.display = 'block';
-        message.innerHTML = displayHtml;
+        displayHtml += '<br>';
+    }
+    if (data.features && data.features.length > 0) {
+        displayHtml += `<strong>Features found:</strong> ${data.features.length}<br>`;
     }
     
+    displayHtml += `<br><small>Saved at ${new Date(data.timestamp).toLocaleTimeString()}</small>`;
+    
+    message.style.display = 'block';
+    message.innerHTML = displayHtml;
+}
+
     // Delete individual car
     function deleteCar(index) {
         chrome.storage.local.get({savedCars: []}, function(result) {
@@ -145,11 +149,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     const salvageClass = isSalvage ? 'salvage' : '';
                     const salvageBadge = isSalvage ? `<span class="warning-badge">SALVAGE</span>` : '';
                     
-                    // Build dealer info
+                    // Build dealer info with salvage warning
                     let dealerHtml = '';
                     if (car.dealer && car.dealer !== 'Unknown') {
-                        dealerHtml = `<strong>Dealer:</strong> ${car.dealer}<br>`;
-                    }
+                        dealerHtml = `<strong>Dealer:</strong> ${car.dealer}`;
+                        if (car.knownSalvageDealer) {
+                            dealerHtml += ` <span class="warning-badge">SALVAGE DEALER</span>`;
+                        }
+                        dealerHtml += '<br>';
+                    }     
                     
                     // Build features tags
                     let featuresHtml = '';
