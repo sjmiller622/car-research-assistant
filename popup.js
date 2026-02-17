@@ -73,33 +73,39 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Display success message
-    function displaySuccessMessage(data) {
-        let displayHtml = '<strong>✅ Car Saved!</strong><br><br>';
-        
-        if (data.title) {
-            displayHtml += `<strong>Car:</strong> ${data.title}<br>`;
-        }
-        if (data.price) {
-            displayHtml += `<strong>Price:</strong> ${data.price}<br>`;
-        }
-        if (data.mileage) {
-            const mileageStyle = data.mileage.includes('New car') ? 'color: orange;' : '';
-            displayHtml += `<strong>Mileage:</strong> <span style="${mileageStyle}">${data.mileage}</span><br>`;
-        }
-        if (data.dealer && data.dealer !== 'Unknown') {
-            displayHtml += `<strong>Dealer:</strong> ${data.dealer}<br>`;
-        }
-        if (data.features && data.features.length > 0) {
-            displayHtml += `<strong>Features found:</strong> ${data.features.length}<br>`;
-        }
-        
-        displayHtml += `<br><small>Saved at ${new Date(data.timestamp).toLocaleTimeString()}</small>`;
-        
-        message.style.display = 'block';
-        message.innerHTML = displayHtml;
+// Display success message
+function displaySuccessMessage(data) {
+    let displayHtml = '<strong>✅ Car Saved!</strong><br><br>';
+    
+    if (data.title) {
+        displayHtml += `<strong>Car:</strong> ${data.title}<br>`;
+    }
+    if (data.vin) {
+        displayHtml += `<strong>VIN:</strong> ${data.vin}<br>`;
+    }
+    if (data.stockNumber) {
+        displayHtml += `<strong>Stock #:</strong> ${data.stockNumber}<br>`;
+    }
+    if (data.price) {
+        displayHtml += `<strong>Price:</strong> ${data.price}<br>`;
+    }
+    if (data.mileage) {
+        const mileageStyle = data.mileage.includes('New car') ? 'color: orange;' : '';
+        displayHtml += `<strong>Mileage:</strong> <span style="${mileageStyle}">${data.mileage}</span><br>`;
+    }
+    if (data.dealer && data.dealer !== 'Unknown') {
+        displayHtml += `<strong>Dealer:</strong> ${data.dealer}<br>`;
+    }
+    if (data.features && data.features.length > 0) {
+        displayHtml += `<strong>Features found:</strong> ${data.features.length}<br>`;
     }
     
+    displayHtml += `<br><small>Saved at ${new Date(data.timestamp).toLocaleTimeString()}</small>`;
+    
+    message.style.display = 'block';
+    message.innerHTML = displayHtml;
+}
+
     // Load and display saved cars
     function loadSavedCars() {
         chrome.storage.local.get({savedCars: []}, function(result) {
@@ -129,15 +135,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     html += `
-                        <div class="car-item">
-                            <div class="car-title">${car.title || 'Unknown Car'}</div>
-                            <strong>Price:</strong> ${car.price || 'N/A'}<br>
-                            <strong>Mileage:</strong> ${car.mileage || 'N/A'}<br>
-                            ${dealerHtml}
-                            ${featuresHtml}
-                            <small style="color: #666;">Saved: ${new Date(car.timestamp).toLocaleString()}</small>
-                        </div>
-                    `;
+                    <div class="car-item">
+                        <div class="car-title">${car.title || 'Unknown Car'}</div>
+                        ${car.vin ? `<strong>VIN:</strong> ${car.vin}<br>` : ''}
+                        ${car.stockNumber ? `<strong>Stock #:</strong> ${car.stockNumber}<br>` : ''}
+                        <strong>Price:</strong> ${car.price || 'N/A'}<br>
+                        <strong>Mileage:</strong> ${car.mileage || 'N/A'}<br>
+                        ${dealerHtml}
+                        ${featuresHtml}
+                        <small style="color: #666;">Saved: ${new Date(car.timestamp).toLocaleString()}</small>
+                    </div>                    `;
                 });
                 savedCarsDiv.innerHTML = html;
             }

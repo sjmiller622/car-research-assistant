@@ -8,12 +8,26 @@ function extractCarsComData() {
     const mileageElement = document.querySelector('.msrp');
     const titleElement = document.querySelector('h1');
     
-    // Try to find VIN (usually in the details section)
-    const vinElement = document.querySelector('[data-qa="vin"]') || 
-                       document.querySelector('.vin') ||
-                       Array.from(document.querySelectorAll('*')).find(el => 
-                           el.textContent.includes('VIN:')
-                       );
+    // Try to find VIN - it's in a subtitle element with format "VIN: xxx / Stock #: yyy"
+    let vinText = null;
+    let stockNumber = null;
+    
+    const subtitleElement = document.querySelector('.subtitle');
+    if (subtitleElement) {
+        const subtitleText = subtitleElement.textContent;
+        
+        // Extract VIN (after "VIN:" and before "/")
+        const vinMatch = subtitleText.match(/VIN:\s*([A-HJ-NPR-Z0-9]{17})/i);
+        if (vinMatch) {
+            vinText = vinMatch[1].trim();
+        }
+        
+        // Extract Stock # (after "Stock #:" or "Stock:")
+        const stockMatch = subtitleText.match(/Stock\s*#?:\s*([A-Z0-9\-]+)/i);
+        if (stockMatch) {
+            stockNumber = stockMatch[1].trim();
+        }
+    }
     
     // Try to find dealer/seller name
     const dealerElement = document.querySelector('[data-qa="dealer-name"]') ||
@@ -30,7 +44,6 @@ function extractCarsComData() {
     // Extract raw text
     let priceText = priceElement ? priceElement.textContent.trim() : null;
     let mileageText = mileageElement ? mileageElement.textContent.trim() : null;
-    let vinText = vinElement ? vinElement.textContent.replace('VIN:', '').trim() : null;
     let dealerText = dealerElement ? dealerElement.textContent.trim() : null;
     let locationText = locationElement ? locationElement.textContent.trim() : null;
     
@@ -38,6 +51,7 @@ function extractCarsComData() {
     const carData = {
         url: window.location.href,
         vin: vinText || null,
+        stockNumber: stockNumber || null,
         timestamp: new Date().toISOString(),
         site: 'cars.com',
         title: titleElement ? titleElement.textContent.trim() : document.title,
