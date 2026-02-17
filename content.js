@@ -115,8 +115,9 @@ function extractFeatures() {
         }
     });
     
-    // Remove duplicates
-    return [...new Set(features)];
+    // Remove duplicates and sort alphabetically
+    const uniqueFeatures = [...new Set(features)];
+    return uniqueFeatures.sort();
 }
 
 // Validate that price looks like a price
