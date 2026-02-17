@@ -1,0 +1,5 @@
+.vs/
+*.sqlite
+*.vsidx
+slnx.sqlite
+VSWorkspaceState.json
