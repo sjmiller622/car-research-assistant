@@ -66,43 +66,46 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-// Display success message
-function displaySuccessMessage(data) {
-    let displayHtml = '<strong>✅ Car Saved!</strong><br><br>';
-    
-    if (data.title) {
-        displayHtml += `<strong>Car:</strong> ${data.title}<br>`;
-    }
-    if (data.vin) {
-        displayHtml += `<strong>VIN:</strong> ${data.vin}<br>`;
-    }
-    if (data.price) {
-        displayHtml += `<strong>Price:</strong> ${data.price}<br>`;
-    }
-    if (data.mileage) {
-        const mileageStyle = data.mileage.includes('New car') ? 'color: orange;' : '';
-        displayHtml += `<strong>Mileage:</strong> <span style="${mileageStyle}">${data.mileage}</span><br>`;
-    }
-    if (data.titleStatus && data.titleStatus !== 'clean' && data.titleStatus !== 'unknown') {
-        displayHtml += `<strong style="color: red;">⚠️ Title Status:</strong> ${data.titleStatus.toUpperCase()}<br>`;
-    }
-    if (data.dealer && data.dealer !== 'Unknown') {
-        displayHtml += `<strong>Dealer:</strong> ${data.dealer}`;
-        if (data.knownSalvageDealer) {
-            displayHtml += ` <span style="color: red; font-weight: bold;">⚠️ KNOWN SALVAGE DEALER</span>`;
+    // Display success message
+    function displaySuccessMessage(data) {
+        let displayHtml = '<strong>✅ Car Saved!</strong><br><br>';
+        
+        if (data.title) {
+            displayHtml += `<strong>Car:</strong> ${data.title}<br>`;
         }
-        displayHtml += '<br>';
-    }
-    if (data.features && data.features.length > 0) {
-        displayHtml += `<strong>Features found:</strong> ${data.features.length}<br>`;
+        if (data.site) {
+            displayHtml += `<strong>Source:</strong> ${data.site}<br>`;
+        }
+        if (data.vin) {
+            displayHtml += `<strong>VIN:</strong> ${data.vin}<br>`;
+        }
+        if (data.price) {
+            displayHtml += `<strong>Price:</strong> ${data.price}<br>`;
+        }
+        if (data.mileage) {
+            const mileageStyle = data.mileage.includes('New car') ? 'color: orange;' : '';
+            displayHtml += `<strong>Mileage:</strong> <span style="${mileageStyle}">${data.mileage}</span><br>`;
+        }
+        if (data.titleStatus && data.titleStatus !== 'clean' && data.titleStatus !== 'unknown') {
+            displayHtml += `<strong style="color: red;">⚠️ Title Status:</strong> ${data.titleStatus.toUpperCase()}<br>`;
+        }
+        if (data.dealer && data.dealer !== 'Unknown') {
+            displayHtml += `<strong>Dealer:</strong> ${data.dealer}`;
+            if (data.knownSalvageDealer) {
+                displayHtml += ` <span style="color: red; font-weight: bold;">⚠️ KNOWN SALVAGE DEALER</span>`;
+            }
+            displayHtml += '<br>';
+        }
+        if (data.features && data.features.length > 0) {
+            displayHtml += `<strong>Features found:</strong> ${data.features.length}<br>`;
+        }
+        
+        displayHtml += `<br><small>Saved at ${new Date(data.timestamp).toLocaleTimeString()}</small>`;
+        
+        message.style.display = 'block';
+        message.innerHTML = displayHtml;
     }
     
-    displayHtml += `<br><small>Saved at ${new Date(data.timestamp).toLocaleTimeString()}</small>`;
-    
-    message.style.display = 'block';
-    message.innerHTML = displayHtml;
-}
-
     // Delete individual car
     function deleteCar(index) {
         chrome.storage.local.get({savedCars: []}, function(result) {
@@ -115,6 +118,25 @@ function displaySuccessMessage(data) {
                     loadSavedCars();
                     message.style.display = 'block';
                     message.innerHTML = '<strong>🗑️ Car deleted!</strong>';
+                });
+            }
+        });
+    }
+    
+    // Override title status for a car
+    function overrideTitleStatus(index, newStatus) {
+        chrome.storage.local.get({savedCars: []}, function(result) {
+            const cars = result.savedCars;
+            
+            if (cars[index]) {
+                const oldStatus = cars[index].titleStatus;
+                cars[index].titleStatus = newStatus;
+                cars[index].manualOverride = true;
+                
+                chrome.storage.local.set({savedCars: cars}, function() {
+                    loadSavedCars();
+                    message.style.display = 'block';
+                    message.innerHTML = `<strong>✏️ Title status updated!</strong><br>Changed from "${oldStatus}" to "${newStatus}"`;
                 });
             }
         });
@@ -144,7 +166,16 @@ function displaySuccessMessage(data) {
                                      car.titleStatus !== 'unknown';
                     
                     const salvageClass = isSalvage ? 'salvage' : '';
-                    const salvageBadge = isSalvage ? `<span class="warning-badge">SALVAGE</span>` : '';
+                    
+                    // Build salvage badge with override option
+                    let salvageBadge = '';
+                    if (isSalvage) {
+                        salvageBadge = `<span class="warning-badge">SALVAGE${car.manualOverride ? ' (Manual)' : ''}</span>
+                            <button class="override-btn" data-index="${index}" data-action="clean" title="Mark as clean title">Mark Clean</button>`;
+                    } else if (car.titleStatus === 'clean' && car.manualOverride) {
+                        salvageBadge = `<span style="color: green; font-size: 11px; font-weight: bold;">✓ CLEAN (Manual)</span>
+                            <button class="override-btn" data-index="${index}" data-action="salvage" title="Mark as salvage">Mark Salvage</button>`;
+                    }
                     
                     // Build dealer info with salvage warning
                     let dealerHtml = '';
@@ -154,7 +185,7 @@ function displaySuccessMessage(data) {
                             dealerHtml += ` <span class="warning-badge">SALVAGE DEALER</span>`;
                         }
                         dealerHtml += '<br>';
-                    }     
+                    }
                     
                     // Build features tags
                     let featuresHtml = '';
@@ -166,10 +197,20 @@ function displaySuccessMessage(data) {
                         featuresHtml += '</div>';
                     }
                     
+                    // Build source badge
+                    let sourceBadge = '';
+                    if (car.site) {
+                        sourceBadge = `<a href="${car.url}" target="_blank" class="source-badge" title="View original listing">${car.site}</a>`;
+                    }
+                    
                     html += `
                         <div class="car-item ${salvageClass}">
                             <div class="car-item-header">
-                                <div class="car-title">${car.title || 'Unknown Car'}${salvageBadge}</div>
+                                <div class="car-title">
+                                    ${car.title || 'Unknown Car'}
+                                    ${sourceBadge}
+                                    ${salvageBadge}
+                                </div>
                                 <button class="delete-btn" data-index="${index}" title="Delete this car">×</button>
                             </div>
                             <div class="car-details">
@@ -190,6 +231,20 @@ function displaySuccessMessage(data) {
                     btn.addEventListener('click', function() {
                         const index = parseInt(this.getAttribute('data-index'));
                         deleteCar(index);
+                    });
+                });
+                
+                // Add click handlers to all override buttons
+                document.querySelectorAll('.override-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const index = parseInt(this.getAttribute('data-index'));
+                        const action = this.getAttribute('data-action');
+                        
+                        if (action === 'clean') {
+                            overrideTitleStatus(index, 'clean');
+                        } else if (action === 'salvage') {
+                            overrideTitleStatus(index, 'salvage/rebuilt');
+                        }
                     });
                 });
             }

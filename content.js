@@ -502,35 +502,60 @@ function detectTitleStatus() {
     const descriptionElement = document.querySelector('.text-description-wrp');
     const descriptionText = descriptionElement ? descriptionElement.textContent.toLowerCase() : '';
     
-    const salvageKeywords = [
-        'salvage title',
-        'salvage vehicle', 
-        'rebuilt title',
-        'branded title',
-        'total loss',
-        'insurance write-off',
-        'salvage'  // Added broader match
+    // Negative indicators (NOT salvage)
+    const notSalvageKeywords = [
+        'not salvage',
+        'no salvage',
+        'clean title',
+        'clear title',
+        'non-salvage',
+        'never salvage',
+        'not a salvage'
+    ];
+    
+    // Check for explicit "not salvage" statements first
+    for (let keyword of notSalvageKeywords) {
+        if (descriptionText.includes(keyword) || pageText.includes(keyword)) {
+            console.log('✅ NOT SALVAGE - found keyword:', keyword);
+            return 'clean';
+        }
+    }
+    
+    // Positive salvage indicators (IS salvage)
+    const salvagePatterns = [
+        /salvage title/i,
+        /salvage vehicle/i,
+        /rebuilt title/i,
+        /branded title/i,
+        /salvage certificate/i,
+        /title:\s*salvage/i,
+        /salvage\s+rebuilt/i,
+        /total loss/i,
+        /insurance write-off/i
     ];
     
     // Check description first (more reliable)
-    for (let keyword of salvageKeywords) {
-        if (descriptionText.includes(keyword)) {
-            console.log('⚠️ SALVAGE DETECTED in description:', keyword);
+    for (let pattern of salvagePatterns) {
+        if (pattern.test(descriptionText)) {
+            const match = descriptionText.match(pattern);
+            console.log('⚠️ SALVAGE DETECTED in description:', match[0]);
             return 'salvage/rebuilt';
         }
     }
     
     // Then check entire page
-    for (let keyword of salvageKeywords) {
-        if (pageText.includes(keyword)) {
-            console.log('⚠️ SALVAGE DETECTED on page:', keyword);
+    for (let pattern of salvagePatterns) {
+        if (pattern.test(pageText)) {
+            const match = pageText.match(pattern);
+            console.log('⚠️ SALVAGE DETECTED on page:', match[0]);
+            
+            // Get context around the match for logging
+            const index = pageText.toLowerCase().indexOf(match[0].toLowerCase());
+            const context = pageText.substring(Math.max(0, index - 50), Math.min(pageText.length, index + match[0].length + 50));
+            console.log('Context:', context);
+            
             return 'salvage/rebuilt';
         }
-    }
-    
-    // Check for clean title mentions
-    if (pageText.includes('clean title')) {
-        return 'clean';
     }
     
     return 'unknown';
