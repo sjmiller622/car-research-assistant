@@ -17,7 +17,8 @@
         "https://www.cars.com/*",
         "https://www.autotrader.com/*",
         "https://www.cargurus.com/*",
-        "https://www.carsoup.com/*"
+        "https://www.carsoup.com/*",
+        "https://www.carcomplaints.com/*"
       ],
       "js": [ "content.js" ]
     }

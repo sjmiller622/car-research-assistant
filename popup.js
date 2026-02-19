@@ -33,8 +33,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Check for duplicates and save
+    // Check for duplicates and save (or handle complaint data)
     function checkAndSaveCarData(carData) {
+        // Check if this is complaint data
+        if (carData.type === 'overview' || carData.type === 'problem_detail') {
+            handleComplaintData(carData);
+            return;
+        }
+        
+        // Regular car listing logic
         chrome.storage.local.get({savedCars: []}, function(result) {
             const cars = result.savedCars;
             
@@ -66,7 +73,107 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Display success message
+    // Handle complaint data - link to matching cars
+    function handleComplaintData(complaintData) {
+        chrome.storage.local.get({savedCars: []}, function(result) {
+            const cars = result.savedCars;
+            
+            // Find all cars that match this make/model/year
+            const matchingCars = cars.filter(car => {
+                if (!car.title) return false;
+                
+                const titleLower = car.title.toLowerCase();
+                const makeLower = complaintData.make ? complaintData.make.toLowerCase() : '';
+                const modelLower = complaintData.model ? complaintData.model.toLowerCase() : '';
+                const yearStr = complaintData.year ? complaintData.year.toString() : '';
+                
+                return titleLower.includes(yearStr) &&
+                       titleLower.includes(makeLower) &&
+                       titleLower.includes(modelLower);
+            });
+            
+            console.log('Found matching cars:', matchingCars.length);
+            
+            if (matchingCars.length === 0) {
+                message.style.display = 'block';
+                message.innerHTML = `
+                    <strong>📋 Complaint Data Captured!</strong><br><br>
+                    <strong>Vehicle:</strong> ${complaintData.year} ${complaintData.make} ${complaintData.model}<br>
+                    <strong>Type:</strong> ${complaintData.type === 'overview' ? 'Overview' : complaintData.problemType}<br>
+                    ${complaintData.totalNHTSAComplaints ? `<strong>Total NHTSA:</strong> ${complaintData.totalNHTSAComplaints}<br>` : ''}
+                    ${complaintData.statistics ? `<strong>Complaints:</strong> ${complaintData.statistics.totalComplaints}<br>` : ''}
+                    ${complaintData.statistics && complaintData.statistics.avgMileage ? `<strong>Avg Mileage:</strong> ${complaintData.statistics.avgMileage.toLocaleString()} mi<br>` : ''}
+                    <br>
+                    <small style="color: orange;">⚠️ No matching cars in your saved list</small>
+                `;
+                return;
+            }
+            
+            // Add complaint data to matching cars
+            matchingCars.forEach(car => {
+                if (!car.complaintData) car.complaintData = [];
+                
+                // Check if we already have this exact complaint data
+                const alreadyHas = car.complaintData.some(c => c.url === complaintData.url);
+                
+                if (!alreadyHas) {
+                    car.complaintData.push(complaintData);
+                    console.log('Added complaint data to:', car.title);
+                }
+            });
+            
+            // Save updated cars
+            chrome.storage.local.set({savedCars: cars}, function() {
+
+                // Build success message
+                let displayHtml = '<strong>✅ Complaint Data Linked!</strong><br><br>';
+                displayHtml += `<strong>Vehicle:</strong> ${complaintData.year} ${complaintData.make} ${complaintData.model}<br>`;
+
+                if (complaintData.type === 'overview') {
+                    displayHtml += `<strong>Type:</strong> Overview Summary<br>`;
+                    if (complaintData.top3Categories && complaintData.top3Categories.length > 0) {
+                        displayHtml += `<strong>Top 3 Issues:</strong><br>`;
+                        complaintData.top3Categories.forEach((cat, idx) => {
+                            // Clean the category name
+                            let cleanName = cat.category
+                                .replace(/NHTSA complaints?[:\s]+\d+/gi, '')
+                                .replace(/\d+\s*NHTSA/gi, '')
+                                .replace(/\s+/g, ' ')
+                                .trim();
+            
+                            displayHtml += `&nbsp;&nbsp;${idx + 1}. ${cleanName}<br>`;
+                        });
+                    }
+                } else {
+                    displayHtml += `<strong>Problem:</strong> ${complaintData.problemType}<br>`;
+                    if (complaintData.nhtsaComplaintCount) {
+                        displayHtml += `<strong>NHTSA Complaints:</strong> ${complaintData.nhtsaComplaintCount}<br>`;
+                    }
+                    if (complaintData.topProblems && complaintData.topProblems.length > 0) {
+                        displayHtml += `<strong>Top Issues:</strong><br>`;
+                        complaintData.topProblems.slice(0, 3).forEach(p => {
+                            displayHtml += `&nbsp;&nbsp;• ${p.name}: ${p.count} mentions<br>`;
+                        });
+                    }
+                    if (complaintData.statistics && complaintData.statistics.avgRepairCost) {
+                        displayHtml += `<strong>Avg Repair Cost:</strong> $${complaintData.statistics.avgRepairCost.toLocaleString()}<br>`;
+                    }
+                    if (complaintData.statistics && complaintData.statistics.avgMileage) {
+                        displayHtml += `<strong>Avg Problem Mileage:</strong> ${complaintData.statistics.avgMileage.toLocaleString()} mi<br>`;
+                    }
+                }
+
+                displayHtml += `<br><strong style="color: green;">✓ Linked to ${matchingCars.length} saved car(s)</strong>`;
+                
+                message.style.display = 'block';
+                message.innerHTML = displayHtml;
+                
+                loadSavedCars();
+            });
+        });
+    }
+    
+    // Display success message for regular car listings
     function displaySuccessMessage(data) {
         let displayHtml = '<strong>✅ Car Saved!</strong><br><br>';
         
@@ -203,6 +310,47 @@ document.addEventListener('DOMContentLoaded', function() {
                         sourceBadge = `<a href="${car.url}" target="_blank" class="source-badge" title="View original listing">${car.site}</a>`;
                     }
                     
+                    // Build complaint summary (OVERVIEW DATA - TOP 3 NHTSA)
+                    let complaintSummaryHtml = '';
+                    if (car.complaintData && car.complaintData.length > 0) {
+                        // Find the overview data (type: 'overview')
+                        const overview = car.complaintData.find(c => c.type === 'overview');
+    
+                        if (overview && overview.top3Categories && overview.top3Categories.length > 0) {
+                            complaintSummaryHtml = `
+                                <div style="background-color: #fff3cd; padding: 8px; border-radius: 4px; margin-top: 8px; border-left: 3px solid #ffc107;">
+                                    <strong>⚠️ Known Issues (NHTSA):</strong><br>
+                                    ${overview.top3Categories.map((cat, idx) => {
+                                        // Clean the category name
+                                        let cleanName = cat.category
+                                            .replace(/NHTSA complaints?[:\s]+\d+/gi, '')
+                                            .replace(/\d+\s*NHTSA/gi, '')
+                                            .replace(/\s+/g, ' ')
+                                            .trim();
+                    
+                                        return `${idx + 1}. ${cleanName}`;
+                                    }).join('<br>')}
+                                </div>
+                            `;
+                        }
+    
+                        // Also show detailed problem data if available
+                        const problemDetails = car.complaintData.filter(c => c.type === 'problem_detail');
+                        if (problemDetails.length > 0) {
+                            const detail = problemDetails[0];
+                            complaintSummaryHtml += `
+                                <div style="font-size: 11px; margin-top: 5px; color: #666;">
+                                    <strong>${detail.problemType}:</strong>
+                                    ${detail.topProblems && detail.topProblems.length > 0 ? 
+                                        detail.topProblems.slice(0, 3).map(p => p.name).join(', ') : 
+                                        'Data captured'}
+                                    ${detail.statistics && detail.statistics.avgMileage ? 
+                                        ` • Avg: ${detail.statistics.avgMileage.toLocaleString()} mi` : ''}
+                                </div>
+                            `;
+                        }
+                    }                    
+
                     html += `
                         <div class="car-item ${salvageClass}">
                             <div class="car-item-header">
@@ -219,6 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <strong>Mileage:</strong> ${car.mileage || 'N/A'}<br>
                                 ${dealerHtml}
                                 ${featuresHtml}
+                                ${complaintSummaryHtml}
                                 <div class="timestamp">Saved: ${new Date(car.timestamp).toLocaleString()}</div>
                             </div>
                         </div>
