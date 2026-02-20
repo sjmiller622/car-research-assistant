@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const message = document.getElementById('message');
     const savedCarsDiv = document.getElementById('savedCars');
     const carCountSpan = document.getElementById('carCount');
+    const exportBtn = document.getElementById('exportBtn');
 
     loadSavedCars();
 
@@ -32,6 +33,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    exportBtn.addEventListener('click', function() {
+        chrome.tabs.create({ url: chrome.runtime.getURL('export.html') });
+    });
 
     // ─────────────────────────────────────────────
     // CHECK FOR DUPLICATES AND SAVE

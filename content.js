@@ -64,7 +64,7 @@ function extractCarsComData() {
     }
     
     return {
-        url: window.location.href,
+        url: cleanUrl(window.location.href),
         vin: vinText || null,
         timestamp: new Date().toISOString(),
         site: 'cars.com',
@@ -153,7 +153,7 @@ function extractAutoTraderData() {
     }
     
     return {
-        url: window.location.href,
+        url: cleanUrl(window.location.href),
         vin: vinText || null,
         timestamp: new Date().toISOString(),
         site: 'autotrader.com',
@@ -277,7 +277,7 @@ function extractCarGurusData() {
     }
     
     return {
-        url: window.location.href,
+        url: cleanUrl(window.location.href),
         vin: vinText || null,
         timestamp: new Date().toISOString(),
         site: 'cargurus.com',
@@ -360,7 +360,7 @@ function extractCarSoupData() {
     }
     
     return {
-        url: window.location.href,
+        url: cleanUrl(window.location.href),
         vin: vinText || null,
         timestamp: new Date().toISOString(),
         site: 'carsoup.com',
@@ -799,6 +799,17 @@ function extractFeatures() {
     // Deduplicate (e.g. "awd" and "all-wheel drive" both matching)
     const uniqueFeatures = [...new Set(features)];
     return uniqueFeatures.sort();
+}
+
+function cleanUrl(url) {
+    if (!url) return url;
+    try {
+        const u = new URL(url);
+        // Keep only the path, strip all query parameters and fragments
+        return `${u.protocol}//${u.hostname}${u.pathname}`;
+    } catch (e) {
+        return url; // If parsing fails, return original
+    }
 }
 
 function detectTitleStatus() {
