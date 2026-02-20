@@ -712,7 +712,7 @@ function extractProblemPageData(make, model, year) {
 
 function extractFeatures() {
     const features = [];
-    
+
     const desiredFeatures = [
         'backup camera',
         'back-up camera',
@@ -735,18 +735,68 @@ function extractFeatures() {
         'awd',
         '4wd'
     ];
-    
-    const pageText = document.body.textContent.toLowerCase();
-    
+
+    // ── Drivetrain terms that need scoped matching ────────────────────────────
+    // These appear in page navigation, filters, and sidebar content for OTHER
+    // vehicles. Only trust them if found in the listing's own features section.
+    const drivetrainFeatures = ['all-wheel drive', 'awd', '4wd'];
+
+    // ── Try to find the features/options container for this site ──────────────
+    const site = detectSite();
+    let featuresContainer = null;
+
+    if (site === 'cars.com') {
+        featuresContainer = document.querySelector('.features-section') ||
+                           document.querySelector('[data-qa="features"]') ||
+                           document.querySelector('.vehicle-features');
+    } else if (site === 'autotrader') {
+        featuresContainer = document.querySelector('[data-cmp="features"]') ||
+                           document.querySelector('.features-list') ||
+                           document.querySelector('[class*="features"]');
+    } else if (site === 'cargurus') {
+        featuresContainer = document.querySelector('[class*="features"]') ||
+                           document.querySelector('[class*="options"]') ||
+                           document.querySelector('[data-cg-ft="features"]');
+    } else if (site === 'carsoup') {
+        featuresContainer = document.querySelector('.features') ||
+                           document.querySelector('.vehicle-features') ||
+                           document.querySelector('.options-list');
+    }
+
+    const fullPageText = document.body.textContent.toLowerCase();
+    const scopedText = featuresContainer
+        ? featuresContainer.textContent.toLowerCase()
+        : null;
+
     desiredFeatures.forEach(feature => {
-        if (pageText.includes(feature.toLowerCase())) {
+        const featureLower = feature.toLowerCase();
+        const isDrivetrain = drivetrainFeatures.includes(featureLower);
+
+        let found = false;
+
+        if (isDrivetrain) {
+            // For drivetrain: only match if we have a scoped container
+            // AND the feature appears there. If no container found, skip it
+            // entirely rather than risk a false positive from the full page.
+            if (scopedText && scopedText.includes(featureLower)) {
+                found = true;
+            }
+        } else {
+            // For all other features: full page search is safe
+            if (fullPageText.includes(featureLower)) {
+                found = true;
+            }
+        }
+
+        if (found) {
             const displayFeature = feature.split(' ')
                 .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                 .join(' ');
             features.push(displayFeature);
         }
     });
-    
+
+    // Deduplicate (e.g. "awd" and "all-wheel drive" both matching)
     const uniqueFeatures = [...new Set(features)];
     return uniqueFeatures.sort();
 }
@@ -928,3 +978,41 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 
 console.log('Content script loaded and ready!');
+
+
+// =============================================================================
+// AUTO-SEND COMPLAINT DATA FOR BACKGROUND FETCHING
+// =============================================================================
+
+// When on CarComplaints overview page, automatically extract and send data
+// This is triggered by the background script when auto-fetching
+if (window.location.href.includes('carcomplaints.com')) {
+    // Check if this is an overview page (ends with /YEAR/ or /YEAR)
+    const isOverview = window.location.pathname.match(/\/\d{4}\/?$/);
+    
+    if (isOverview) {
+        console.log('CarComplaints overview page detected - will auto-extract');
+        
+        // Wait for page to fully load
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                console.log('Auto-extracting complaint data...');
+                const data = extractPageData();
+                
+                if (data && data.type === 'overview') {
+                    console.log('Sending complaint data to background script');
+                    
+                    // Send to background script
+                    chrome.runtime.sendMessage({
+                        action: 'complaintDataExtracted',
+                        data: data
+                    }).catch(err => {
+                        console.log('Error sending message (normal if popup opened this):', err);
+                    });
+                } else {
+                    console.log('No overview data extracted');
+                }
+            }, 2000); // Wait 2 seconds for dynamic content
+        });
+    }
+}
