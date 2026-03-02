@@ -51,35 +51,13 @@ function extractCarsComData() {
                            document.querySelector('.dealer-location');
     
     const features = extractFeatures();
-    
-    let priceText = priceElement ? priceElement.textContent.trim() : null;
-    let mileageText = mileageElement ? mileageElement.textContent.trim() : null;
-    let dealerText = dealerElement ? dealerElement.textContent.trim() : null;
-    let locationText = locationElement ? locationElement.textContent.trim() : null;
-    
-    const knownSalvageDealer = isKnownSalvageDealer(dealerText);
-    const titleStatus = detectTitleStatus();
-    if (titleStatus === 'salvage/rebuilt' && dealerText) {
-        addSalvageDealer(dealerText);
-    }
-    
-    return {
-        url: cleanUrl(window.location.href),
-        vin: vinText || null,
-        timestamp: new Date().toISOString(),
-        site: 'cars.com',
-        title: titleElement ? titleElement.textContent.trim() : document.title,
-        price: validatePrice(priceText),
-        mileage: validateMileage(mileageText),
-        dealer: dealerText || 'Unknown',
-        location: locationText || 'Unknown',
-        features: features,
-        titleStatus: titleStatus,
-        knownSalvageDealer: knownSalvageDealer,
-        accidentReported: null,
-        rawPrice: priceText,
-        rawMileage: mileageText
-    };
+
+    const priceText = priceElement ? priceElement.textContent.trim() : null;
+    const mileageText = mileageElement ? mileageElement.textContent.trim() : null;
+    const dealerText = dealerElement ? dealerElement.textContent.trim() : null;
+    const locationText = locationElement ? locationElement.textContent.trim() : null;
+
+    return buildListingResult('cars.com', { titleElement, vinText, priceText, mileageText, dealerText, locationText, features });
 }
 
 // =============================================================================
@@ -140,35 +118,13 @@ function extractAutoTraderData() {
                            document.querySelector('[class*="dealer-location"]');
     
     const features = extractFeatures();
-    
-    let priceText = priceElement ? priceElement.textContent.trim() : null;
-    let mileageText = mileageElement ? mileageElement.textContent.trim() : null;
-    let dealerText = dealerElement ? dealerElement.textContent.trim() : null;
-    let locationText = locationElement ? locationElement.textContent.trim() : null;
-    
-    const knownSalvageDealer = isKnownSalvageDealer(dealerText);
-    const titleStatus = detectTitleStatus();
-    if (titleStatus === 'salvage/rebuilt' && dealerText) {
-        addSalvageDealer(dealerText);
-    }
-    
-    return {
-        url: cleanUrl(window.location.href),
-        vin: vinText || null,
-        timestamp: new Date().toISOString(),
-        site: 'autotrader.com',
-        title: titleElement ? titleElement.textContent.trim() : document.title,
-        price: validatePrice(priceText),
-        mileage: validateMileage(mileageText),
-        dealer: dealerText || 'Unknown',
-        location: locationText || 'Unknown',
-        features: features,
-        titleStatus: titleStatus,
-        knownSalvageDealer: knownSalvageDealer,
-        accidentReported: null,
-        rawPrice: priceText,
-        rawMileage: mileageText
-    };
+
+    const priceText = priceElement ? priceElement.textContent.trim() : null;
+    const mileageText = mileageElement ? mileageElement.textContent.trim() : null;
+    const dealerText = dealerElement ? dealerElement.textContent.trim() : null;
+    const locationText = locationElement ? locationElement.textContent.trim() : null;
+
+    return buildListingResult('autotrader.com', { titleElement, vinText, priceText, mileageText, dealerText, locationText, features });
 }
 
 // =============================================================================
@@ -266,33 +222,11 @@ function extractCarGurusData() {
                            document.querySelector('[class*="address"]');
     
     const features = extractFeatures();
-    
-    let priceText = priceElement ? priceElement.textContent.trim() : null;
-    let locationText = locationElement ? locationElement.textContent.trim() : null;
-    
-    const knownSalvageDealer = isKnownSalvageDealer(dealerText);
-    const titleStatus = detectTitleStatus();
-    if (titleStatus === 'salvage/rebuilt' && dealerText) {
-        addSalvageDealer(dealerText);
-    }
-    
-    return {
-        url: cleanUrl(window.location.href),
-        vin: vinText || null,
-        timestamp: new Date().toISOString(),
-        site: 'cargurus.com',
-        title: titleElement ? titleElement.textContent.trim() : document.title,
-        price: validatePrice(priceText),
-        mileage: validateMileage(mileageText),
-        dealer: dealerText || 'Unknown',
-        location: locationText || 'Unknown',
-        features: features,
-        titleStatus: titleStatus,
-        knownSalvageDealer: knownSalvageDealer,
-        accidentReported: null,
-        rawPrice: priceText,
-        rawMileage: mileageText
-    };
+
+    const priceText = priceElement ? priceElement.textContent.trim() : null;
+    const locationText = locationElement ? locationElement.textContent.trim() : null;
+
+    return buildListingResult('cargurus.com', { titleElement, vinText, priceText, mileageText, dealerText, locationText, features });
 }
 
 // =============================================================================
@@ -349,33 +283,11 @@ function extractCarSoupData() {
                            document.querySelector('[class*="dealer-address"]');
     
     const features = extractFeatures();
-    
-    let priceText = priceElement ? priceElement.textContent.trim() : null;
-    let locationText = locationElement ? locationElement.textContent.trim() : null;
-    
-    const knownSalvageDealer = isKnownSalvageDealer(dealerText);
-    const titleStatus = detectTitleStatus();
-    if (titleStatus === 'salvage/rebuilt' && dealerText) {
-        addSalvageDealer(dealerText);
-    }
-    
-    return {
-        url: cleanUrl(window.location.href),
-        vin: vinText || null,
-        timestamp: new Date().toISOString(),
-        site: 'carsoup.com',
-        title: titleElement ? titleElement.textContent.trim() : document.title,
-        price: validatePrice(priceText),
-        mileage: validateMileage(mileageText),
-        dealer: dealerText || 'Unknown',
-        location: locationText || 'Unknown',
-        features: features,
-        titleStatus: titleStatus,
-        knownSalvageDealer: knownSalvageDealer,
-        accidentReported: null,
-        rawPrice: priceText,
-        rawMileage: mileageText
-    };
+
+    const priceText = priceElement ? priceElement.textContent.trim() : null;
+    const locationText = locationElement ? locationElement.textContent.trim() : null;
+
+    return buildListingResult('carsoup.com', { titleElement, vinText, priceText, mileageText, dealerText, locationText, features });
 }
 
 // =============================================================================
@@ -710,6 +622,21 @@ function extractProblemPageData(make, model, year) {
 // SHARED UTILITY FUNCTIONS
 // =============================================================================
 
+function buildListingResult(site, { titleElement, vinText, priceText, mileageText, dealerText, locationText, features }) {
+    const titleStatus = detectTitleStatus();
+    const knownSalvageDealer = isKnownSalvageDealer(dealerText);
+    if (titleStatus === 'salvage/rebuilt' && dealerText) addSalvageDealer(dealerText);
+    return {
+        url: cleanUrl(window.location.href), vin: vinText || null,
+        timestamp: new Date().toISOString(), site,
+        title: titleElement ? titleElement.textContent.trim() : document.title,
+        price: validatePrice(priceText), mileage: validateMileage(mileageText),
+        dealer: dealerText || 'Unknown', location: locationText || 'Unknown',
+        features, titleStatus, knownSalvageDealer,
+        accidentReported: null, rawPrice: priceText, rawMileage: mileageText
+    };
+}
+
 function extractFeatures() {
     const features = [];
 
@@ -847,19 +774,12 @@ function detectTitleStatus() {
         /insurance write-off/i
     ];
     
-    for (let pattern of salvagePatterns) {
-        if (pattern.test(descriptionText)) {
-            const match = descriptionText.match(pattern);
-            console.log('⚠️ SALVAGE DETECTED in description:', match[0]);
-            return 'salvage/rebuilt';
-        }
-    }
-    
-    for (let pattern of salvagePatterns) {
-        if (pattern.test(pageText)) {
-            const match = pageText.match(pattern);
-            console.log('⚠️ SALVAGE DETECTED on page:', match[0]);
-            return 'salvage/rebuilt';
+    for (const { text, label } of [{ text: descriptionText, label: 'description' }, { text: pageText, label: 'page' }]) {
+        for (const pattern of salvagePatterns) {
+            if (pattern.test(text)) {
+                console.log(`⚠️ SALVAGE DETECTED in ${label}:`, text.match(pattern)[0]);
+                return 'salvage/rebuilt';
+            }
         }
     }
     
@@ -937,13 +857,7 @@ function isKnownSalvageDealer(dealerName) {
         'north 61 auto sales'
     ];
     
-    for (let salvageDealer of majorSalvageDealers) {
-        if (normalizedName.includes(salvageDealer)) {
-            return true;
-        }
-    }
-    
-    return false;
+    return majorSalvageDealers.some(dealer => normalizedName.includes(dealer));
 }
 
 // =============================================================================

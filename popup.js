@@ -51,11 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
         chrome.storage.local.get({savedCars: []}, function(result) {
             const cars = result.savedCars;
 
-            const duplicate = cars.find(car => {
-                if (car.vin && carData.vin && car.vin === carData.vin) return true;
-                if (car.url === carData.url) return true;
-                return false;
-            });
+            const duplicate = cars.find(car => isSameCar(car, carData));
 
             if (duplicate) {
                 message.style.display = 'block';
@@ -148,10 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function attachComplaintToCar(carData, complaintData, currentMessage) {
         chrome.storage.local.get({savedCars: []}, function(result) {
             const cars = result.savedCars;
-            const carIndex = cars.findIndex(c =>
-                (c.vin && carData.vin && c.vin === carData.vin) ||
-                (c.url === carData.url)
-            );
+            const carIndex = cars.findIndex(c => isSameCar(c, carData));
 
             if (carIndex !== -1) {
                 cars[carIndex].complaintData = [complaintData];

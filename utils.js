@@ -246,6 +246,19 @@ function getMissingComplaintKeys(uniqueCarTypes, savedComplaints) {
 
 
 // ─────────────────────────────────────────────
+// SAME-CAR IDENTITY CHECK
+// ─────────────────────────────────────────────
+
+/**
+ * Returns true if two car objects refer to the same listing.
+ * Prefers VIN matching; falls back to URL.
+ */
+function isSameCar(a, b) {
+    return (a.vin && b.vin && a.vin === b.vin) || a.url === b.url;
+}
+
+
+// ─────────────────────────────────────────────
 // MODULE EXPORT (Node.js / unit testing only)
 // ─────────────────────────────────────────────
 if (typeof module !== 'undefined' && module.exports) {
@@ -255,6 +268,7 @@ if (typeof module !== 'undefined' && module.exports) {
         getCarComplaintsUrl,
         parseCarTitle,
         getUniqueCarTypes,
-        getMissingComplaintKeys
+        getMissingComplaintKeys,
+        isSameCar
     };
 }
