@@ -1,14 +1,30 @@
-# Visual Studio cache/options
-.vs/
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-*.sqlite
-*.vsidx
-slnx.sqlite
-VSWorkspaceState.json
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
-# OS files
+# Phase 7 pipeline — intermediate files (regenerated every run)
+client_profile.json
+filtered_cars.json
+scored_cars.json
+tco_cars.json
+ranked_output.json
+
+# Phase 7 — output reports (client-specific, not for repo)
+output/
+
+# Phase 7 — input data (too large or client-specific)
+data/epa_mpg.csv
+google_forms_export.csv
+car-research-*.json
+
+# Chrome extension — don't commit the SheetJS bundle (large)
+xlsx.full.min.js
+
+# OS noise
 .DS_Store
 Thumbs.db
+
+# VS Code
+.vscode/
